@@ -61,3 +61,24 @@
 `#2119` → `#2082` → `#2077` → `#1808` → `#1806` → `#1704`
 
 **已丢弃的分支清理**：`patch/pr-1801`（上游已 closed）已从 fork 删除。
+
+
+## 6. 构建须知（2026-10-12 实测踩坑，务必照抄）
+
+```bash
+# 用 worktree 隔离，绝不动生产工作区 ~/src/strata（生产服务从那里跑）
+git worktree add ~/src/strata-v0143 ours/main
+cd ~/src/strata-v0143
+cmake -B build -DCMAKE_BUILD_TYPE=Release \
+  -DSTRATA_ENABLE_CUDA=ON -DSTRATA_BUILD_TESTS=OFF -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES=86 -DSTRATA_CUDA_SM86_IQ3_STAGE2=ON \
+  -DSTRATA_GGML_DIR="$HOME/src/strata/third_party/llama.cpp" \
+  -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+cmake --build build --target strata -j"$(nproc)"
+```
+| 坑 | 后果 | 原因 |
+|---|---|---|
+| 不传 `STRATA_GGML_DIR` / `FETCHCONTENT_FULLY_DISCONNECTED` | cmake **卡死 10+ 分钟** | 会去 `git clone github.com/ggml-org/llama.cpp`（本机连不上） |
+| 不传 `STRATA_ENABLE_CUDA=ON` | `No rule to make target 'strata'` | 引擎目标未创建（`GGML_CUDA=ON` 不够） |
+
+**已构建产物**：`engine/strata-v0143ps1`（`strata 0.1.43` + SM86 stage2，66 MB）
