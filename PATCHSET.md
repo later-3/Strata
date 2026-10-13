@@ -82,3 +82,13 @@ cmake --build build --target strata -j"$(nproc)"
 | 不传 `STRATA_ENABLE_CUDA=ON` | `No rule to make target 'strata'` | 引擎目标未创建（`GGML_CUDA=ON` 不够） |
 
 **已构建产物**：`engine/strata-v0143ps1`（`strata 0.1.43` + SM86 stage2，66 MB）
+
+
+## 7. 验证证据（2026-10-12/13，单变量 A/B，贪心 top_k=1）
+
+| 补丁 | 场景 | 结果 | 判据 | 结论 |
+|---|---|---|---|---|
+| **#1744**（SM86 stage2） | v0143ps1，`STRATA_PF_IQ3_STAGE2` 0/1，其余固定 | decode@2K 114.0 vs 114.7；prefill7K 2310.9 vs 2308.4；prefill32K 2823.9 vs 2821.5；**输出指纹逐字节一致** `c05bc626eaa412a2` | prefill ±0.5% / decode ±10% / 输出必须一致 | **零收益、零回归、输出不变** → 保留但不启用（丢弃判据：上游合并 或 继续中性） |
+
+参考（同机基线，v0.1.43 + 生产配置）：decode@2K **114**，prefill 7K/32K **2,308/2,824** tok/s
+（上游官方表 3090+IQ3_S：decode 52.4、prefill 1,624@32K；社区同配置 #2100：decode 62.1、prefill 1,200@16K）
