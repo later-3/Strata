@@ -8225,7 +8225,6 @@ int main(int argc, char** argv) {
             o.prompt_cache > 0 ? (size_t) o.conversation_cache_mib * 1024 * 1024 : 0,
             (size_t) o.conversation_cache_slots, o.conversation_cache_min_tokens,
             o.conversation_cache_storage, o.conversation_cache_dir);
-            (size_t) o.conversation_cache_slots, o.conversation_cache_min_tokens);
         // How a stored conversation's running state is held (strata/core/state_codec.hpp). The name was checked when
         // the flags were read, so it resolves here. fp32 - the default - leaves every byte of every parked image and
         // every session file exactly as the last release wrote it; bf16 halves the running state in both, and says so

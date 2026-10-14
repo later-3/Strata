@@ -82,6 +82,27 @@ public:
         return best;
     }
 
+
+    /// --conversation-cache-park-gain N: the RAM cache's "longest parked entry this conversation's outgoing state
+    /// supersedes", mirrored entry for entry so the park decision reads the same in disk mode.  See
+    /// ConversationCache::parked_prefix_tokens.
+    size_t parked_prefix_tokens(const std::vector<int32_t>& ids, const std::vector<ConversationImageKey>& images,
+                                const std::vector<ConversationCheckpoint>& checkpoints, bool cvec) const {
+        size_t longest = 0;
+        for (const auto& e : entries_) {
+            if (e.cvec != cvec) continue;
+            const ConversationCheckpoint* deepest = nullptr;
+            for (const auto& c : e.checkpoints)
+                if (!deepest || c.ids.size() > deepest->ids.size()) deepest = &c;
+            if (!deepest || deepest->ids.empty()) continue;
+            bool holds = deepest->ids == ids && deepest->imgs == images;
+            for (const auto& k : checkpoints)
+                if (!holds && k.ids == deepest->ids && k.imgs == deepest->imgs) holds = true;
+            if (holds) longest = std::max(longest, deepest->ids.size());
+        }
+        return longest;
+    }
+
     // Reads the entry's file back (through the installed io).  The entry and its file leave the cache either way:
     // a file that cannot be read is gone for good, `last_error()` says why, and the caller falls back to reading the
     // prompt - the same recoverable miss a discarded invalid snapshot is in the RAM path.
@@ -165,6 +186,11 @@ public:
     size_t superseded() const { return disk_ ? disk_->superseded() : ram_->superseded(); }
     size_t slots() const { return disk_ ? disk_->slots() : ram_->slots(); }
     int64_t longest_tokens() const { return disk_ ? disk_->longest_tokens() : ram_->longest_tokens(); }
+    size_t parked_prefix_tokens(const std::vector<int32_t>& ids, const std::vector<ConversationImageKey>& images,
+                                const std::vector<ConversationCheckpoint>& checkpoints, bool cvec) const {
+        return disk_ ? disk_->parked_prefix_tokens(ids, images, checkpoints, cvec)
+                     : ram_->parked_prefix_tokens(ids, images, checkpoints, cvec);
+    }
     void retain(std::vector<ConversationKv>&& kv, int64_t tokens, std::vector<std::vector<ConversationKv>>&& stage_kv = {}) {
         if (disk_) disk_->retain(std::move(kv), tokens, std::move(stage_kv));
         else ram_->retain(std::move(kv), tokens, std::move(stage_kv));
