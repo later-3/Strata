@@ -9760,7 +9760,9 @@ int main(int argc, char** argv) {
                         o.spec_min_p, (long long) o.conversation_cache_mib, o.conversation_cache_slots,
                         o.conversation_cache_storage.c_str(),
                         (long long) o.conversation_cache_min_free_mib, (long long) o.conversation_cache_min_tokens,
-                        (long long) o.tail_role_token, xcache.segmented() ? 1 : 0,
+                        (long long) o.tail_role_token,
+                        // --kv-grow keeps the cache unsegmented on purpose (VRAM takes the K/V chunks): elastic too
+                        (xcache.segmented() || (o.vram_elastic && strata::core::qsa_kv_elastic())) ? 1 : 0,
                         o.batch > 0 ? (" batch_slots=" + std::to_string(o.batch) +
                                        " slot_cache=" + std::to_string(o.prompt_cache > 0 ? 1 : 0) +
                                        " batch_groups=" + std::to_string(o.batch_groups)).c_str() : "");
